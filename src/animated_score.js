@@ -4,6 +4,56 @@
 	https://github.com/joaquinrmi/animated-score
 */
 
+/*
+	Esta clase representa a una acción importante en la reproducción de una pieza musical.
+	Puede ser de tipo:
+		# Note
+		# Tempo
+*/
+class MusicAction
+{
+	constructor(type)
+	{
+		this.type = type;
+	}
+};
+
+/*
+	Tipo de MusicAction que representa una nota musical.
+*/
+class Note extends MusicAction
+{
+	/*
+		"note" es un número del 0 al 11 que identifica una de las 12 notas del sistema occidental.
+		"octave" es la octava de la nota, la cual va desde 0 a 6.
+		"duration" es la duración de la nota en cantidades enteras, cuya unidad es la duración de una semifusa.
+	*/
+	constructor(note, octave, duration)
+	{
+		super("note");
+
+		this.note = note;
+		this.octave = octave;
+		this.duration = duration;
+	}
+};
+
+/*
+	Tipo de MusicAction que anuncia un cambio de tempo en la ejecución de la pieza musical.
+*/
+class Tempo extends MusicAction
+{
+	/*
+		"tempo" es un número cuya unidad son las pulsaciones de una negra por minuto. Este valor no afecta a la velocidad de reproducción de AnimatedScore, pero sí afecta a la duración de las notas.
+	*/
+	constructor(tempo)
+	{
+		super("tempo");
+
+		this.tempo = typeof tempo == "number" ? tempo : 120;
+	}
+};
+
 class AnimatedScore
 {
 	/*
@@ -95,6 +145,13 @@ class AnimatedScore
 	reset()
 	{}
 
+	/*
+		Crea una nueva secuencia de notas visuales para reproducir en la animación.
+		"actions" es un arreglo de MusicAction.
+	*/
+	setMusicActions(actions)
+	{}
+
 	mainLoop()
 	{
 		this.update();
@@ -108,7 +165,7 @@ class AnimatedScore
 	{
 		this.drawScoreLines(this.context);
 	}
-
+	
 	drawScoreLines(context)
 	{
 		for(var i = 0; i < 5; ++i)

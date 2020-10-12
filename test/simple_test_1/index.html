@@ -10,11 +10,25 @@
 	<script src="../../src/animated_score.js"></script>
 
 	<script type="text/javascript">
-		var animtedScore = new AnimatedScore({
+		var animatedScore = new AnimatedScore({
 			containerId: "score-container",
 		});
 
-		animtedScore.start();
+		animatedScore.start();
+
+		document.onkeypress = e => {
+			if(e.key == "s")
+			{
+				if(animatedScore.status == "playing")
+				{
+					animatedScore.pause();
+				}
+				else
+				{
+					animatedScore.start();
+				}
+			}
+		};
 	</script>
 </body>
 </html>
