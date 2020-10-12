@@ -92,6 +92,47 @@ class AnimatedScore
 			this.framerate = 60;
 		}
 
+		const imgId = {
+			note1: ["note-1"],
+			note2: ["note-2", "note-2t"],
+			note4: ["note-4", "note-4t"],
+			note8: ["note-8", "note-8t"],
+			note16: ["note-16", "note-16t"],
+			note32: ["note-32", "note-32t"],
+			note64: ["note-64", "note-64t"],
+			quaverBase: ["note-base"]
+		};
+
+		const imgNames = [
+			"note1", "note2", "note4", "note8", "note16", "note32", "note64", "quaverBase"
+		];
+
+		/*
+			Cargar las imágenes desde las etiquetas definidas en el documento.
+			Si una imagen con el id requerido no existe, se mostrará un error por consola, pero la ejecución no se detendrá.
+		*/
+		this.imgs = {};
+		for(var i in imgNames)
+		{
+			const name = imgNames[i];
+
+			this.imgs[name] = [];
+
+			for(var j in imgId[name])
+			{
+				const id = imgId[name][j];
+
+				var res = document.getElementById(id);
+				if(res == null)
+				{
+					console.error("No se ha encontrado el recurso \"" + id + "\"");
+					continue;
+				}
+
+				this.imgs[name].push(res);
+			}
+		}
+
 		this.scoreContainer = document.getElementById(args.containerId);
 		if(this.scoreContainer == null)
 		{
