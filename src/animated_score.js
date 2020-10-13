@@ -67,10 +67,15 @@ class ScoreDimensions
 };
 
 /*
-	Representa cada uno de los símbolos
+	Representa cada uno de los símbolos musicales.
 */
 class NoteSymbol
 {
+	/*
+		"img" es el elemento <img> del DOM.
+		"corner" es la esquina superior izquierda de la nota.
+		"duration" es la duración en segundos de la nota.
+	*/
 	constructor(img, corner, duration)
 	{
 		this.img = img;
@@ -230,6 +235,9 @@ class AnimatedScore
 		*/
 		this.noteTime = [];
 
+		this.playerLinePos = this.canvas.width / 2;
+		this.playerLineColor = "blue";
+
 		this.loopID = 0;
 		this.status = "stopped";
 	}
@@ -280,6 +288,7 @@ class AnimatedScore
 	draw()
 	{
 		this.drawScoreLines(this.context);
+		this.drawPlayerLine(this.context);
 	}
 	
 	drawScoreLines(context)
@@ -293,5 +302,15 @@ class AnimatedScore
 			context.lineWidth = 1;
 			context.stroke();
 		}
+	}
+
+	drawPlayerLine(context)
+	{
+		context.beginPath();
+		context.moveTo(this.playerLinePos, this.canvasPadding - 10);
+		context.lineTo(this.playerLinePos, this.canvasPadding + this.scoreHeight + 10);
+		context.strokeStyle = this.playerLineColor;
+		context.lineWidth = 2;
+		context.stroke();
 	}
 };
