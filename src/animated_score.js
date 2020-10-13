@@ -54,6 +54,54 @@ class Tempo extends MusicAction
 	}
 };
 
+/*
+	Dimensiones útiles de la partitura.
+*/
+class ScoreDimensions
+{
+	constructor(height, padding)
+	{
+		this.height = height;
+		this.padding = padding;
+	}
+};
+
+/*
+	Representa cada uno de los símbolos
+*/
+class NoteSymbol
+{
+	constructor(img, corner, duration)
+	{
+		this.img = img;
+		this.corner = corner;
+		this.duration = duration;
+	}
+};
+
+class VisualNote
+{
+	constructor(symbol, tempo, verticalPos, scoreDimensions)
+	{
+		this.img = symbol.img;
+		this.verticalPos = verticalPos;
+		this.x = 0;
+		this.y = scoreDimensions.padding + scoreDimensions.height - verticalPos * 3.5 - symbol.corner + 2.5;
+		this.duration = symbol.duration * (tempo / 120);
+	}
+
+	draw(context)
+	{
+		context.drawImage(this.img, this.x, this.y);
+	}
+
+	changeSymbol(symbol, scoreDimensions)
+	{
+		this.img = symbol.img;
+		this.y = scoreDimensions.padding + scoreDimensions.height - this.verticalPos * 3.5 - symbol.corner + 2.5;
+	}
+}
+
 class AnimatedScore
 {
 	/*
@@ -142,6 +190,8 @@ class AnimatedScore
 		this.canvasPadding = 20;
 		this.scoreHeight = 29;
 
+		this.scoreDimensions = new ScoreDimensions(this.scoreHeight, this.canvasPadding);
+
 		/*
 			Creación del canvas.
 			Su ancho será igual al ancho del contenedor.
@@ -156,6 +206,29 @@ class AnimatedScore
 		this.scoreContainer.appendChild(this.canvas);
 
 		this.context = this.canvas.getContext("2d");
+
+		/*
+			Duración en segundos de las notas a 120 pulsaciones de negra por minuto.
+			El orden va desde la redonda hasta la semifusa.
+			Por supuesto, estos valores son fácilmente calculables, pero creo más conveniente tenerlos a disposición sin recurrir a cálculos que puedan entorpezer el código.
+		*/
+		this.noteDuration = [
+			2, 1, 0.5, 0.25, 0.125, 0.0625, 0.03125
+		];
+
+		/*
+			Posición vertical en el pentagrama de cada una de las 12 notas.
+			Las posiciones son relativas y dependen de la clave usada.
+		*/
+		this.noteVerticalPos = [
+			0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6
+		];
+
+		/*
+			Establece el tiempo en milisegundos en el que se debe reproducir una nota.
+			Este tiempo se utiliza para ubicar la nota horizontalmente en el pentagrama.
+		*/
+		this.noteTime = [];
 
 		this.loopID = 0;
 		this.status = "stopped";
@@ -191,7 +264,9 @@ class AnimatedScore
 		"actions" es un arreglo de MusicAction.
 	*/
 	setMusicActions(actions)
-	{}
+	{
+
+	}
 
 	mainLoop()
 	{
