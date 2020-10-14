@@ -360,7 +360,12 @@ class AnimatedScore
 
 	draw()
 	{
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
 		this.drawScoreLines(this.context);
+
+		this.drawNotes(this.context);
+
 		this.drawPlayerLine(this.context);
 	}
 	
@@ -385,6 +390,14 @@ class AnimatedScore
 		context.strokeStyle = this.playerLineColor;
 		context.lineWidth = 2;
 		context.stroke();
+	}
+
+	drawNotes(context)
+	{
+		for(var i = 0; i < this.visualNotes.length; ++i)
+		{
+			this.visualNotes[i].draw(context);
+		}
 	}
 
 	registerNote(note)
