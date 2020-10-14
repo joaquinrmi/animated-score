@@ -222,6 +222,14 @@ class AnimatedScore
 		];
 
 		/*
+			Duración de cada nota en términos de una semifusa.
+			El orden va desde la redonda hasta la semifusa.
+		*/
+		this.noteFraqDuration = [
+			64, 32, 16, 8, 4, 2, 1
+		];
+
+		/*
 			Posición vertical en el pentagrama de cada una de las 12 notas.
 			Las posiciones son relativas y dependen de la clave usada.
 		*/
@@ -229,11 +237,44 @@ class AnimatedScore
 			0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6
 		];
 
+		this.noteSymbols = [
+			[
+				new NoteSymbol(this.imgs["note1"][0], 6, this.noteDuration[0]),
+				new NoteSymbol(this.imgs["note1"][0], 6, this.noteDuration[0]),
+			],
+			[
+				new NoteSymbol(this.imgs["note2"][0], 26, this.noteDuration[1]),
+				new NoteSymbol(this.imgs["note2"][1], 6, this.noteDuration[1]),
+			],
+			[
+				new NoteSymbol(this.imgs["note4"][0], 26, this.noteDuration[2]),
+				new NoteSymbol(this.imgs["note4"][1], 6, this.noteDuration[2]),
+			],
+			[
+				new NoteSymbol(this.imgs["note8"][0], 26, this.noteDuration[3]),
+				new NoteSymbol(this.imgs["note8"][1], 6, this.noteDuration[3]),
+			],
+			[
+				new NoteSymbol(this.imgs["note16"][0], 26, this.noteDuration[4]),
+				new NoteSymbol(this.imgs["note16"][1], 6, this.noteDuration[4]),
+			],
+			[
+				new NoteSymbol(this.imgs["note32"][0], 26, this.noteDuration[5]),
+				new NoteSymbol(this.imgs["note32"][5], 6, this.noteDuration[5]),
+			],
+			[
+				new NoteSymbol(this.imgs["note64"][0], 26, this.noteDuration[6]),
+				new NoteSymbol(this.imgs["note64"][1], 6, this.noteDuration[6]),
+			],
+		];
+
 		/*
 			Establece el tiempo en milisegundos en el que se debe reproducir una nota.
 			Este tiempo se utiliza para ubicar la nota horizontalmente en el pentagrama.
 		*/
 		this.noteTime = [];
+
+		this.visualNotes = [];
 
 		this.playerLinePos = this.canvas.width / 2;
 		this.playerLineColor = "blue";
@@ -273,7 +314,39 @@ class AnimatedScore
 	*/
 	setMusicActions(actions)
 	{
+		if(!(actions instanceof Array))
+		{
+			return;
+		}
 
+		/*
+			Propiedades de la generación que se irán modificando con cada MusicAction.
+			"currentTempo" es el tempo con el que se cargará la nota actual.
+			"x" es la posición horizontal en el pentagrama de la nota actual.
+		*/
+		this.gen = {
+			currentTempo: 120,
+			x: this.playerLinePos
+		};
+
+		for(var i = 0; i < actions.length; ++i)
+		{
+			switch(actions[i].type)
+			{
+			case "note":
+				this.registerNote(actions[i]);
+				break;
+
+			case "tempo":
+				this.gen.currentTempo = actions[i].tempo;
+				break;
+			}
+		}
+
+		/*
+			Se dibuja por primera vez para visualizar las notas en la linea de partida.
+		*/
+		this.draw();
 	}
 
 	mainLoop()
@@ -312,5 +385,94 @@ class AnimatedScore
 		context.strokeStyle = this.playerLineColor;
 		context.lineWidth = 2;
 		context.stroke();
+	}
+
+	registerNote(note)
+	{
+		var time = 0;
+
+		this.noteTime.push(time);
+
+		var vn = this.createVisualNotes(note);
+		for(var i = 0; i < vn.length; ++i)
+		{
+			var visualNote = vn[i];
+
+			visualNote.x = this.gen.x;
+
+			this.gen.x += visualNote.duration * this.velocity;
+
+			this.visualNotes.push(visualNote);
+		}
+	}
+
+	createVisualNotes(note)
+	{
+		const symbolIds = [];
+
+		/*
+			En la siguiente sección se encuentra el o la combinación adecuada de símbolos cuyas duraciones sumadas sean igual a la duración de la nota actual.
+		*/
+		var r = note.duration;
+		for(var i = 0; i < this.noteFraqDuration.length; ++i)
+		{
+			if(this.noteFraqDuration[i] <= r)
+			{
+				symbolIds.push(i);
+				r -= this.noteFraqDuration[i];
+				if(r == 0) break;
+			}
+		}
+
+		/*
+			Cada nota tiene un identificador numérico único dentro del sistema occidental.
+		*/
+		const noteID = note.note + note.octave * 12;
+
+		/*
+			Se le asigna la clave de Fa a las notas de las tres octavas más graves y a todas las demás se le asigna la clave de Sol.
+		*/
+		var clavier;
+		if(noteID < 12 * 3) clavier = "F";
+		else clavier = "G";
+
+		var visualNotes = [];
+		for(var i = 0; i < symbolIds.length; ++i)
+		{
+			const id = symbolIds[i];
+			const verticalPos = this.getNoteVerticalPos(note, clavier);
+			const symbol = verticalPos > 3 ? this.noteSymbols[id][1] : this.noteSymbols[id][0];
+
+			visualNotes.push(new VisualNote(
+				symbol,
+				this.gen.currentTempo,
+				verticalPos,
+				this.scoreDimensions
+			));
+		}
+
+		return visualNotes;
+	}
+
+	/*
+		Calcula y devuelve la posición vertical en el pentagrama para una nota.
+		Este valor depende de la clave usada.
+	*/
+	getNoteVerticalPos(note, clavier)
+	{
+		var verticalPos = this.noteVerticalPos[note.note];
+
+		switch(clavier)
+		{
+		case "G":
+			verticalPos += -2 + (note.octave - 3) * 7;
+			break;
+
+		case "F":
+			verticalPos += -4 + (note.octave - 1) * 7;
+			break;
+		}
+
+		return verticalPos;
 	}
 };

@@ -30,6 +30,11 @@
 			containerId: "score-container",
 		});
 
+		var actions = [
+			new Note(0, 4, 16)
+		];
+
+		animatedScore.setMusicActions(actions);
 		animatedScore.start();
 
 		document.onkeypress = e => {
