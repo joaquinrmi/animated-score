@@ -28,19 +28,39 @@
 	<script type="text/javascript">
 		var animatedScore = new AnimatedScore({
 			containerId: "score-container",
+			playingVelocity: 300
 		});
 
 		var actions = [
-			new Tempo(120),
+			new Tempo(160),
 			new Note(0, 3, 16),
 			new Note(2, 3, 16),
 			new Note(4, 3, 16),
 			new Note(5, 3, 16),
-			new Note(4, 3, 16)
+			new Note(4, 3, 16),
+			new Note(2, 3, 16),
+			new Note(4, 3, 16),
+			new Note(5, 3, 16),
+			new Note(7, 3, 16),
+			new Note(5, 3, 16),
+			new Note(4, 3, 16),
+			new Note(5, 3, 16),
+			new Note(7, 3, 16),
+			new Note(9, 3, 16),
+			new Note(7, 3, 16),
+			new Note(5, 3, 16),
+			new Note(7, 3, 16),
+			new Note(9, 3, 16),
+			new Note(11, 3, 16),
+			new Note(9, 3, 16),
+			new Note(7, 3, 16),
+			new Note(9, 3, 16),
+			new Note(11, 3, 16),
+			new Note(0, 4, 32),
 		];
 
 		animatedScore.setMusicActions(actions);
-		animatedScore.start();
+		//animatedScore.start();
 
 		document.onkeypress = e => {
 			if(e.key == "s")

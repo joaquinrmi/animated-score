@@ -365,6 +365,7 @@ class AnimatedScore
 		/*
 			Se dibuja por primera vez para visualizar las notas en la linea de partida.
 		*/
+		this.checkNoteVisualization();
 		this.draw();
 	}
 
@@ -374,13 +375,9 @@ class AnimatedScore
 		this.draw();
 	}
 
-	update()
+	checkNoteVisualization()
 	{
-		const currentTime = performance.now();
-		const deltaTime = currentTime - this.lastTime;
-		this.lastTime = currentTime;
-
-		if(this.lastNote < this.visualNotes.length && this.noteTime[this.lastNote] < this.timeSinceStart)
+		while(this.lastNote < this.visualNotes.length && this.visualNotes[this.lastNote].x - this.dx < this.canvas.width)
 		{
 			this.lastNote += 1;
 		}
@@ -393,19 +390,41 @@ class AnimatedScore
 				this.stop();
 			}
 		}
+	}
+
+	update()
+	{
+		const currentTime = performance.now();
+		const deltaTime = currentTime - this.lastTime;
+		this.lastTime = currentTime;
+
+		this.checkNoteVisualization();
+
+		const dx = this.velocity * deltaTime / 1000;
+		this.dx += dx;
+		this.context.translate(-dx, 0);
 
 		this.timeSinceStart += deltaTime;
 	}
 
 	draw()
 	{
-		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		this.context.save();
+		this.context.setTransform();
 
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		this.drawScoreLines(this.context);
+
+		this.context.restore();
 
 		this.drawNotes(this.context);
 
+		this.context.save();
+		this.context.setTransform();
+
 		this.drawPlayerLine(this.context);
+
+		this.context.restore();
 	}
 	
 	drawScoreLines(context)
