@@ -92,7 +92,7 @@ class VisualNote
 		this.verticalPos = verticalPos;
 		this.x = 0;
 		this.y = scoreDimensions.padding + scoreDimensions.height - verticalPos * 3.5 - symbol.corner + 2.5;
-		this.duration = symbol.duration * (tempo / 120);
+		this.duration = symbol.duration * (120 / tempo);
 	}
 
 	draw(context)
@@ -281,6 +281,20 @@ class AnimatedScore
 
 		this.loopID = 0;
 		this.status = "stopped";
+
+		/*
+			Desplazamiento horizontal ocasionado por el paso del tiempo.
+		*/
+		this.dx = 0;
+
+		/*
+			Rango de notas que se deben dibujar.
+		*/
+		this.firstNote = 0;
+		this.lastNote = 0;
+
+		this.timeSinceStart = 0;
+		this.lastTime = 0;
 	}
 
 	start()
@@ -288,6 +302,7 @@ class AnimatedScore
 		if(this.status != "playing")
 		{
 			this.status = "playing";
+			this.lastTime = performance.now();
 			this.loopID = setInterval(this.mainLoop.bind(this), 1000 / this.framerate);
 		}
 	}
@@ -306,7 +321,10 @@ class AnimatedScore
 	}
 
 	reset()
-	{}
+	{
+		this.lastTime = 0;
+		this.timeSinceStart = 0;
+	}
 
 	/*
 		Crea una nueva secuencia de notas visuales para reproducir en la animación.
@@ -326,6 +344,7 @@ class AnimatedScore
 		*/
 		this.gen = {
 			currentTempo: 120,
+			time: 0,
 			x: this.playerLinePos
 		};
 
@@ -356,7 +375,27 @@ class AnimatedScore
 	}
 
 	update()
-	{}
+	{
+		const currentTime = performance.now();
+		const deltaTime = currentTime - this.lastTime;
+		this.lastTime = currentTime;
+
+		if(this.lastNote < this.visualNotes.length && this.noteTime[this.lastNote] < this.timeSinceStart)
+		{
+			this.lastNote += 1;
+		}
+
+		if(this.firstNote < this.lastNote && this.visualNotes[this.firstNote].x - this.dx < -10)
+		{
+			this.firstNote += 1;
+			if(this.noteFirst == this.visualNotes.length)
+			{
+				this.stop();
+			}
+		}
+
+		this.timeSinceStart += deltaTime;
+	}
 
 	draw()
 	{
@@ -394,7 +433,7 @@ class AnimatedScore
 
 	drawNotes(context)
 	{
-		for(var i = 0; i < this.visualNotes.length; ++i)
+		for(var i = this.firstNote; i < this.lastNote; ++i)
 		{
 			this.visualNotes[i].draw(context);
 		}
@@ -402,14 +441,13 @@ class AnimatedScore
 
 	registerNote(note)
 	{
-		var time = 0;
-
-		this.noteTime.push(time);
-
 		var vn = this.createVisualNotes(note);
 		for(var i = 0; i < vn.length; ++i)
 		{
 			var visualNote = vn[i];
+
+			this.noteTime.push(this.gen.time);
+			this.gen.time += visualNote.duration * 1000;
 
 			visualNote.x = this.gen.x;
 
