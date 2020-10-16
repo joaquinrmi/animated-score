@@ -153,11 +153,14 @@ class AnimatedScore
 			note16: ["note-16", "note-16t"],
 			note32: ["note-32", "note-32t"],
 			note64: ["note-64", "note-64t"],
-			quaverBase: ["note-base"]
+			quaverBase: ["note-base"],
+			f_clavier: ["f-clavier"],
+			g_clavier: ["g-clavier"]
 		};
 
 		const imgNames = [
-			"note1", "note2", "note4", "note8", "note16", "note32", "note64", "quaverBase"
+			"note1", "note2", "note4", "note8", "note16", "note32", "note64", "quaverBase",
+			"f_clavier", "g_clavier"
 		];
 
 		/*
@@ -276,6 +279,9 @@ class AnimatedScore
 
 		this.visualNotes = [];
 
+		this.claviers = [];
+		this.lastClavier = 0;
+
 		this.playerLinePos = this.canvas.width / 2;
 		this.playerLineColor = "blue";
 
@@ -345,7 +351,8 @@ class AnimatedScore
 		this.gen = {
 			currentTempo: 120,
 			time: 0,
-			x: this.playerLinePos
+			x: this.playerLinePos,
+			clavier: "g"
 		};
 
 		for(var i = 0; i < actions.length; ++i)
@@ -362,6 +369,8 @@ class AnimatedScore
 			}
 		}
 
+		console.log(this.claviers);
+
 		/*
 			Se dibuja por primera vez para visualizar las notas en la linea de partida.
 		*/
@@ -375,6 +384,10 @@ class AnimatedScore
 		this.draw();
 	}
 
+	/*
+		Controla el rango de notas que deben de ser dibujadas en el frame actual.
+		Esto lo hace verificando las notas que se escapan y entran en la pantalla.
+	*/
 	checkNoteVisualization()
 	{
 		while(this.lastNote < this.visualNotes.length && this.visualNotes[this.lastNote].x - this.dx < this.canvas.width)
@@ -392,6 +405,17 @@ class AnimatedScore
 		}
 	}
 
+	/*
+		Verifica si se debe cambiar de clave en el frame actual.
+	*/
+	checkClavier()
+	{
+		if(this.lastClavier < this.claviers.length - 1 && this.claviers[this.lastClavier + 1].time < this.timeSinceStart)
+		{
+			this.lastClavier += 1;
+		}
+	}
+
 	update()
 	{
 		const currentTime = performance.now();
@@ -399,6 +423,7 @@ class AnimatedScore
 		this.lastTime = currentTime;
 
 		this.checkNoteVisualization();
+		this.checkClavier();
 
 		const dx = this.velocity * deltaTime / 1000;
 		this.dx += dx;
@@ -413,7 +438,7 @@ class AnimatedScore
 		this.context.setTransform();
 
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		this.drawScoreLines(this.context);
+		this.drawScoreLines(this.context, this.canvas.width);
 
 		this.context.restore();
 
@@ -423,17 +448,18 @@ class AnimatedScore
 		this.context.setTransform();
 
 		this.drawPlayerLine(this.context);
+		this.drawClavier(this.context);
 
 		this.context.restore();
 	}
 	
-	drawScoreLines(context)
+	drawScoreLines(context, width)
 	{
 		for(var i = 0; i < 5; ++i)
 		{
 			context.beginPath();
 			context.moveTo(0, this.canvasPadding + i * 7 + 0.5);
-			context.lineTo(this.canvas.width, this.canvasPadding + i * 7 + 0.5);
+			context.lineTo(width, this.canvasPadding + i * 7 + 0.5);
 			context.strokeStyle = "black";
 			context.lineWidth = 1;
 			context.stroke();
@@ -458,9 +484,37 @@ class AnimatedScore
 		}
 	}
 
+	drawClavier(context)
+	{
+		const clavier = this.claviers[this.lastClavier].clavier;
+
+		context.fillStyle = "white";
+		context.fillRect(0, 0, 52, this.canvas.height);
+
+		this.drawScoreLines(context, 52);
+
+		context.drawImage(this.imgs[clavier + "_clavier"][0], 15, 10);
+	}
+
 	registerNote(note)
 	{
 		var vn = this.createVisualNotes(note);
+
+		if(this.claviers.length == 0)
+		{
+			this.claviers.push({
+				clavier: this.gen.clavier,
+				time: 0
+			});
+		}
+		else if(this.claviers[this.claviers.length - 1].clavier != this.gen.clavier)
+		{
+			this.claviers.push({
+				clavier: this.gen.clavier,
+				time: this.gen.time
+			});
+		}
+
 		for(var i = 0; i < vn.length; ++i)
 		{
 			var visualNote = vn[i];
@@ -503,8 +557,10 @@ class AnimatedScore
 			Se le asigna la clave de Fa a las notas de las tres octavas más graves y a todas las demás se le asigna la clave de Sol.
 		*/
 		var clavier;
-		if(noteID < 12 * 3) clavier = "F";
-		else clavier = "G";
+		if(noteID < 12 * 3) clavier = "f";
+		else clavier = "g";
+
+		this.gen.clavier = clavier;
 
 		var visualNotes = [];
 		for(var i = 0; i < symbolIds.length; ++i)
@@ -534,11 +590,11 @@ class AnimatedScore
 
 		switch(clavier)
 		{
-		case "G":
+		case "g":
 			verticalPos += -2 + (note.octave - 3) * 7;
 			break;
 
-		case "F":
+		case "f":
 			verticalPos += -4 + (note.octave - 1) * 7;
 			break;
 		}
