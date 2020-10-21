@@ -390,8 +390,26 @@ class AnimatedScore
 
 	reset()
 	{
+		this.context.setTransform();
+
 		this.lastTime = 0;
 		this.timeSinceStart = 0;
+
+		this.firstNote = 0;
+		this.lastNote = 0;
+		this.firstLine = 0;
+		this.lastLine = 0;
+
+		this.currentQuavSect = [];
+		this.lastSect = 0;
+
+		this.timeSinceStart = 0;
+		this.dx = 0;
+
+		this.checkNoteVisualization();
+		this.checkNoteLine();
+		this.checkQuaverSection();
+		this.draw();
 	}
 
 	/*
@@ -468,7 +486,7 @@ class AnimatedScore
 		if(this.firstNote < this.lastNote && this.visualNotes[this.firstNote].x - this.dx < -10)
 		{
 			this.firstNote += 1;
-			if(this.noteFirst == this.visualNotes.length)
+			if(this.firstNote == this.visualNotes.length)
 			{
 				this.stop();
 			}
@@ -862,78 +880,126 @@ class AnimatedScore
 					-lineLarge
 				));
 			}
+		}
 
-			var ql = this.gen.quaverSectionElements.length;
+		var currentNoteId = 4;
+		var lastNoteId = 6;
+		while(currentNoteId <= lastNoteId)
+		{
+			var quaverPattern = [];
 
-			if(visualNote.duration == this.noteDuration[4] * timeFactor)
+			for(var i = 0; i < this.gen.quaverSectionElements.length; ++i)
 			{
-				if(i > 0 && this.gen.quaverSectionElements[i - 1].duration == this.noteDuration[4] * timeFactor)
-				{
-					if(!(i + 1 < ql))
-					{
-						continue;
-					}
-					else if(this.gen.quaverSectionElements[i + 1].duration != this.noteDuration[4] * timeFactor)
-					{
-						continue;
-					}
-				}
+				var visualNote = this.gen.quaverSectionElements[i];
 
+				if(visualNote.duration == this.noteDuration[currentNoteId] * timeFactor)
+				{
+					quaverPattern.push(1);
+				}
+				else if(visualNote.duration < this.noteDuration[currentNoteId] * timeFactor)
+				{
+					quaverPattern.push(0);
+				}
+				else quaverPattern.push(2);
+			}
+
+			var sectionsToAdd = [[]];
+			var current = 0;
+
+			for(var i = 0; i < quaverPattern.length; ++i)
+			{
+				if(quaverPattern[i] <= 1)
+				{
+					sectionsToAdd[current].push(i);
+				}
+				else if(sectionsToAdd[current].length > 0)
+				{
+					sectionsToAdd.push([]);
+					++current;
+				}
+			}
+
+			for(var i = 0; i < sectionsToAdd.length; ++i)
+			{
 				var sx, sy, sToX, sToY;
 
-				if(sectionDirection == "up")
+				if(sectionsToAdd[i].length == 0)
 				{
-					sx = visualNote.x + 8.5;
-					sy = y + 4;
-				}
-				else
-				{
-					sx = visualNote.x;
-					sy = y - 4;
+					break;
 				}
 
-				if(i + 1 < this.gen.quaverSectionElements.length)
+				if(sectionsToAdd[i].length == 1)
 				{
-					var nextNote = this.gen.quaverSectionElements[i + 1];
+					var id = sectionsToAdd[i][0];
+					var visualNote = this.gen.quaverSectionElements[id];
 
-					if(nextNote.duration == this.noteDuration[4] * timeFactor)
+					if(sectionDirection == "up")
 					{
-						if(sectionDirection == "up")
-						{
-							sToX = nextNote.x + 8.5;
-							sToY = sy;
-						}
-						else
-						{
-							sToX = nextNote.x;
-							sToY = sy;
-						}
-
-						this.quaverSections.push(new QuaverSection(sx, sy, sToX, sToY));
+						sx = visualNote.x + 8.5;
+						sy = y + 4 * (currentNoteId - 3);
 					}
 					else
 					{
+						sx = visualNote.x;
+						sy = y - 4 * (currentNoteId - 3);
+					}
+
+					if(id == 0)
+					{
+						var nextNote = this.gen.quaverSectionElements[id + 1];
 						var dxNext = (nextNote.x - visualNote.x) / 2;
 
-						sToX = nextNote.x + 8.5 - dxNext;
+						if(sectionDirection == "up")
+						{
+							sToX = nextNote.x + 8.5 - dxNext;
+						}
+						else
+						{
+							sToX = nextNote.x - dxNext;
+						}
 						sToY = sy;
-
-						this.quaverSections.push(new QuaverSection(sx, sy, sToX, sToY));
 					}
-					
-				}
-				else if(i > 0)
-				{
-					var prevNote = this.gen.quaverSectionElements[i - 1];
+					else
+					{
+						var prevNote = this.gen.quaverSectionElements[id - 1];
+						var dxPrev = (visualNote.x - prevNote.x) / 2;
 
-					var dxPrev = (visualNote.x - prevNote.x) / 2;
-
-					sToX = visualNote.x + 8.5 - dxPrev;
-					sToY = sy;
+						if(sectionDirection == "up")
+						{
+							sToX = visualNote.x + 8.5 - dxPrev;
+						}
+						else
+						{
+							sToX = visualNote.x - dxNext;
+						}
+						sToY = sy;
+					}
 
 					this.quaverSections.push(new QuaverSection(sx, sy, sToX, sToY));
+					continue;
 				}
+
+				var firstNote = this.gen.quaverSectionElements[sectionsToAdd[i][0]];
+				var lastNote = this.gen.quaverSectionElements[sectionsToAdd[i][sectionsToAdd[i].length - 1]];
+
+				if(sectionDirection == "up")
+				{
+					sx = firstNote.x + 8.5;
+					sy = y + 4 * (currentNoteId - 3);
+					sToX = lastNote.x + 8.5;
+				}
+				else
+				{
+					sx = firstNote.x;
+					sy = y - 4 * (currentNoteId - 3);
+					sToX = lastNote.x;
+				}
+				sToY = sy;
+
+				this.quaverSections.push(new QuaverSection(sx, sy, sToX, sToY));
 			}
+
+			++currentNoteId;
 		}
 	}
 
