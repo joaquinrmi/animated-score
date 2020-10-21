@@ -107,6 +107,55 @@ class VisualNote
 	}
 }
 
+/*
+	Linea vertical de una nota.
+*/
+class NoteLine
+{
+	constructor(x, y, large)
+	{
+		this.x = x;
+		this.y = y;
+		this.large = large;
+		this.color = "black";
+	}
+
+	draw(context)
+	{
+		context.strokeStyle = this.color;
+		context.beginPath();
+		context.moveTo(this.x, this.y);
+		context.lineTo(this.x, this.y + this.large);
+		context.lineWidth = 1;
+		context.stroke();
+	}
+};
+
+/*
+	Línea horizontal que forma parte de una sección de corcheas.
+*/
+class QuaverSection
+{
+	constructor(x, y, toX, toY)
+	{
+		this.x = x;
+		this.y = y;
+		this.toX = toX;
+		this.toY = toY;
+		this.color = "black";
+	}
+
+	draw(context)
+	{
+		context.strokeStyle = this.color;
+		context.beginPath();
+		context.moveTo(this.x, this.y);
+		context.lineTo(this.toX, this.toY);
+		context.lineWidth = 3;
+		context.stroke();
+	}
+};
+
 class AnimatedScore
 {
 	/*
@@ -269,6 +318,10 @@ class AnimatedScore
 				new NoteSymbol(this.imgs["note64"][0], 26, this.noteDuration[6]),
 				new NoteSymbol(this.imgs["note64"][1], 6, this.noteDuration[6]),
 			],
+			[
+				new NoteSymbol(this.imgs.quaverBase[0], 6, 0),
+				new NoteSymbol(this.imgs.quaverBase[0], 6, 0)
+			]
 		];
 
 		/*
@@ -278,6 +331,15 @@ class AnimatedScore
 		this.noteTime = [];
 
 		this.visualNotes = [];
+
+		this.quaverSections = [];
+		this.noteLines = [];
+
+		this.firstLine = 0;
+		this.lastLine = 0;
+
+		this.currentQuavSect = [];
+		this.lastSect = 0;
 
 		this.claviers = [];
 		this.lastClavier = 0;
@@ -352,7 +414,15 @@ class AnimatedScore
 			currentTempo: 120,
 			time: 0,
 			x: this.playerLinePos,
-			clavier: "g"
+			clavier: "g",
+
+			/*
+				Propiedades que definen las secciones de corcheas, semicorcheas, fusas y semifusas.
+				Estas secciones se deberán dibujar de una forma especial.
+			*/
+			quaverSection: false,
+			quaverTotalDuration: 0,
+			quaverSectionElements: []
 		};
 
 		for(var i = 0; i < actions.length; ++i)
@@ -369,12 +439,12 @@ class AnimatedScore
 			}
 		}
 
-		console.log(this.claviers);
-
 		/*
 			Se dibuja por primera vez para visualizar las notas en la linea de partida.
 		*/
 		this.checkNoteVisualization();
+		this.checkNoteLine();
+		this.checkQuaverSection();
 		this.draw();
 	}
 
@@ -416,6 +486,44 @@ class AnimatedScore
 		}
 	}
 
+	checkNoteLine()
+	{
+		while(this.lastLine < this.noteLines.length && this.noteLines[this.lastLine].x - this.dx < this.canvas.width)
+		{
+			this.lastLine += 1;
+		}
+
+		if(this.firstLine < this.lastLine && this.noteLines[this.firstLine].x - this.dx < -10)
+		{
+			this.firstLine += 1;
+		}
+	}
+
+	checkQuaverSection()
+	{
+		var lastSect = this.lastSect;
+		for(var i = lastSect; i < this.quaverSections.length && i < lastSect + 4; ++i)
+		{
+			if(this.quaverSections[i].x - this.dx < this.canvas.width)
+			{
+				this.currentQuavSect.push(this.quaverSections[i]);
+				this.lastSect += 1;
+			}
+			else break;
+		}
+
+		var toDelete = 0;
+		for(var i = 0; i < this.currentQuavSect.length && i < 4; ++i)
+		{
+			if(this.currentQuavSect[i].toX - this.dx < -10)
+			{
+				toDelete += 1;
+			}
+			else break;
+		}
+		this.currentQuavSect.splice(0, toDelete);
+	}
+
 	update()
 	{
 		const currentTime = performance.now();
@@ -424,6 +532,8 @@ class AnimatedScore
 
 		this.checkNoteVisualization();
 		this.checkClavier();
+		this.checkNoteLine();
+		this.checkQuaverSection();
 
 		const dx = this.velocity * deltaTime / 1000;
 		this.dx += dx;
@@ -443,6 +553,8 @@ class AnimatedScore
 		this.context.restore();
 
 		this.drawNotes(this.context);
+		this.drawNoteLines(this.context);
+		this.drawQuaverSections(this.context);
 
 		this.context.save();
 		this.context.setTransform();
@@ -484,6 +596,22 @@ class AnimatedScore
 		}
 	}
 
+	drawNoteLines(context)
+	{
+		for(var i = this.firstLine; i < this.lastLine; ++i)
+		{
+			this.noteLines[i].draw(context);
+		}
+	}
+
+	drawQuaverSections(context)
+	{
+		for(var i = 0; i < this.currentQuavSect.length; ++i)
+		{
+			this.currentQuavSect[i].draw(context);
+		}
+	}
+
 	drawClavier(context)
 	{
 		const clavier = this.claviers[this.lastClavier].clavier;
@@ -500,6 +628,8 @@ class AnimatedScore
 	{
 		var vn = this.createVisualNotes(note);
 
+		var changedClavier = false;
+
 		if(this.claviers.length == 0)
 		{
 			this.claviers.push({
@@ -513,6 +643,8 @@ class AnimatedScore
 				clavier: this.gen.clavier,
 				time: this.gen.time
 			});
+
+			changedClavier = true;
 		}
 
 		for(var i = 0; i < vn.length; ++i)
@@ -527,6 +659,50 @@ class AnimatedScore
 			this.gen.x += visualNote.duration * this.velocity;
 
 			this.visualNotes.push(visualNote);
+
+			var timeFactor = 120 / this.gen.currentTempo;
+
+			/*
+				Verificar si está activa una sección de corcheas.
+			*/
+			if(this.gen.quaverSection)
+			{
+				/*
+					Si la duración de la nota actual supera la duración de una corchea.
+				*/
+				if(visualNote.duration > this.noteDuration[3] * timeFactor)
+				{
+					this.createQuaverSection();
+
+					this.gen.quaverSection = false;
+					this.gen.quaverTotalDuration = 0;
+					this.gen.quaverSectionElements = [];
+
+					continue;
+				}
+
+				this.gen.quaverTotalDuration += visualNote.duration;
+
+				if(changedClavier || this.gen.quaverTotalDuration > 1 * timeFactor)
+				{
+					this.createQuaverSection();
+
+					this.gen.quaverSection = false;
+					this.gen.quaverTotalDuration = 0;
+					this.gen.quaverSectionElements = [];
+				}
+				else
+				{
+					this.gen.quaverSectionElements.push(visualNote);
+				}
+			}
+
+			if(!this.gen.quaverSection && visualNote.duration <= this.noteDuration[3] * timeFactor)
+			{
+				this.gen.quaverSection = true;
+				this.gen.quaverTotalDuration += visualNote.duration;
+				this.gen.quaverSectionElements.push(visualNote);
+			}
 		}
 	}
 
@@ -578,6 +754,187 @@ class AnimatedScore
 		}
 
 		return visualNotes;
+	}
+
+	createQuaverSection()
+	{
+		if(this.gen.quaverSectionElements.length <= 1)
+		{
+			return;
+		}
+
+		var timeFactor = 120 / this.gen.currentTempo;
+
+		var majorVerticalPos = -100;
+		var minorVerticalPos = 100;
+		var majorID = 0;
+		var minorID = 0;
+
+		for(var i = 0; i < this.gen.quaverSectionElements.length; ++i)
+		{
+			var visualNote = this.gen.quaverSectionElements[i];
+
+			if(visualNote.verticalPos > majorVerticalPos)
+			{
+				majorVerticalPos = visualNote.verticalPos;
+				majorID = i;
+			}
+			if(visualNote.verticalPos < minorVerticalPos)
+			{
+				minorVerticalPos = visualNote.verticalPos;
+				minorID = i;
+			}
+
+			visualNote.changeSymbol(this.noteSymbols[7][0], this.scoreDimensions);
+		}
+
+		var majorDV = 0;
+		var minorDV = 0;
+
+		if(majorVerticalPos > 3)
+		{
+			majorDV = majorVerticalPos - 4;
+		}
+		else
+		{
+			majorDV = 4 - majorVerticalPos;
+		}
+
+		if(minorVerticalPos > 3)
+		{
+			minorDV = minorVerticalPos - 4;
+		}
+		else
+		{
+			minorDV = 4 - minorVerticalPos;
+		}
+
+		var sectionDirection = "up";
+		if(majorVerticalPos > 3 && majorDV >= minorDV)
+		{
+			sectionDirection = "down";
+		}
+
+		var l = this.gen.quaverSectionElements.length - 1;
+
+		var x, y, toX, toY;
+
+		if(sectionDirection == "up")
+		{
+			x = this.gen.quaverSectionElements[0].x + 8.5;
+			y = this.gen.quaverSectionElements[majorID].y - 18;
+			toX = this.gen.quaverSectionElements[l].x + 8.5;
+			toY = y;
+		}
+		else
+		{
+			x = this.gen.quaverSectionElements[0].x;
+			y = this.gen.quaverSectionElements[minorID].y + 6 + 18;
+			toX = this.gen.quaverSectionElements[l].x;
+			toY = y;
+		}
+
+		this.quaverSections.push(new QuaverSection(x, y, toX, toY));
+
+		for(var i = 0; i < this.gen.quaverSectionElements.length; ++i)
+		{
+			var visualNote = this.gen.quaverSectionElements[i];
+
+			var lineLarge;
+
+			if(sectionDirection == "up")
+			{
+				lineLarge = y - visualNote.y;
+
+				this.noteLines.push(new NoteLine(
+					visualNote.x + 8.5,
+					visualNote.y,
+					lineLarge
+				));
+			}
+			else
+			{
+				lineLarge = visualNote.y - y;
+
+				this.noteLines.push(new NoteLine(
+					visualNote.x,
+					visualNote.y,
+					-lineLarge
+				));
+			}
+
+			var ql = this.gen.quaverSectionElements.length;
+
+			if(visualNote.duration == this.noteDuration[4] * timeFactor)
+			{
+				if(i > 0 && this.gen.quaverSectionElements[i - 1].duration == this.noteDuration[4] * timeFactor)
+				{
+					if(!(i + 1 < ql))
+					{
+						continue;
+					}
+					else if(this.gen.quaverSectionElements[i + 1].duration != this.noteDuration[4] * timeFactor)
+					{
+						continue;
+					}
+				}
+
+				var sx, sy, sToX, sToY;
+
+				if(sectionDirection == "up")
+				{
+					sx = visualNote.x + 8.5;
+					sy = y + 4;
+				}
+				else
+				{
+					sx = visualNote.x;
+					sy = y - 4;
+				}
+
+				if(i + 1 < this.gen.quaverSectionElements.length)
+				{
+					var nextNote = this.gen.quaverSectionElements[i + 1];
+
+					if(nextNote.duration == this.noteDuration[4] * timeFactor)
+					{
+						if(sectionDirection == "up")
+						{
+							sToX = nextNote.x + 8.5;
+							sToY = sy;
+						}
+						else
+						{
+							sToX = nextNote.x;
+							sToY = sy;
+						}
+
+						this.quaverSections.push(new QuaverSection(sx, sy, sToX, sToY));
+					}
+					else
+					{
+						var dxNext = (nextNote.x - visualNote.x) / 2;
+
+						sToX = nextNote.x + 8.5 - dxNext;
+						sToY = sy;
+
+						this.quaverSections.push(new QuaverSection(sx, sy, sToX, sToY));
+					}
+					
+				}
+				else if(i > 0)
+				{
+					var prevNote = this.gen.quaverSectionElements[i - 1];
+
+					var dxPrev = (visualNote.x - prevNote.x) / 2;
+
+					sToX = visualNote.x + 8.5 - dxPrev;
+					sToY = sy;
+
+					this.quaverSections.push(new QuaverSection(sx, sy, sToX, sToY));
+				}
+			}
+		}
 	}
 
 	/*
