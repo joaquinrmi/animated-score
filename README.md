@@ -8,6 +8,10 @@ La idea de Animated Score surgió debido a la necesidad de incluir una partitura
 
 ## Características
 
+* Control de la animación, pudiendo iniciarla, pausarla y detenerla/reiniciarla.
+* Control de la velocidad de la animación, la cual no altera la duración de las notas.
+* Posibilidad de cargar las notas.
+* Control del tempo.
 * Todas las figuras musicales: redonda, blanca, negra, corchea, semicorchea, fusa y semifusa.
 * Dos claves: la Clave de sol en segunda y la Clave de fa en cuarta.
 
@@ -17,6 +21,7 @@ La idea de Animated Score surgió debido a la necesidad de incluir una partitura
 * Silencios.
 * Ligaduras.
 * Más claves.
+* Visualización del tempo.
 
 ## Forma de uso
 
